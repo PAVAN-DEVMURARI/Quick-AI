@@ -1,15 +1,9 @@
-import OpenAI from 'openai';
 import sql from '../configs/db.js';
 import { clerkClient } from '@clerk/express';
 import axios from 'axios';
 import { v2 as cloudinary } from 'cloudinary';
 import pdf from 'pdf-parse/lib/pdf-parse.js';
 import FormData from 'form-data';
-
-// Configure OpenAI client (using OpenAI API, not Gemini)
-const AI = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
-});
 
 // Alternative direct Gemini API function
 async function callGeminiDirect(prompt) {
@@ -79,15 +73,8 @@ export const generateArticle = async (req, res) => {
             return res.json({ success: false, message: 'Prompt is required' });
         }
 
-        const response = await AI.chat.completions.create({
-            model: 'gemini-2.5-flash',
-            messages: [
-                { role: 'user', content: prompt.trim() }
-            ],
-            temperature: 0.7
-        });
-
-        const content = (response.choices?.[0]?.message?.content || '').trim();
+        const response = await callGeminiDirect(prompt.trim());
+        const content = response;
 
         if (!content) {
             return res.json({ success: false, message: 'Model returned empty content. Try another prompt.' });
@@ -191,27 +178,13 @@ Example format:
                     }
                 }
                 
-                // Fallback to OpenAI compatibility
-                console.log('Making OpenAI compatibility API call to Gemini...');
-                const response = await AI.chat.completions.create({
-                    model: 'gemini-1.5-flash', // Changed from gemini-2.5-flash
-                    messages: [ 
-                        { role: 'system', content: 'You are an expert blog title generator. Always respond with exactly 5 numbered blog titles.' },
-                        { role: 'user', content: enhancedPrompt }
-                    ],
-                    temperature: 0.7,
-                    max_tokens: 300
-                });
-
-                console.log('OpenAI compatibility response:', JSON.stringify(response, null, 2));
+                // Fallback to direct Gemini API
+                console.log('Using direct Gemini API for blog titles...');
+                const systemPrompt = 'You are an expert blog title generator. Always respond with exactly 5 numbered blog titles for the following topic: ';
+                const rawContent = await callGeminiDirect(systemPrompt + enhancedPrompt);
+                finishReason = 'stop';
                 
-                const rawChoice = response?.choices?.[0];
-                console.log('Raw choice:', rawChoice);
-                
-                let rawContent = (rawChoice?.message?.content || '').trim();
-                finishReason = rawChoice?.finish_reason || '';
-                
-                // Extract multiple titles from OpenAI response
+                // Extract multiple titles from Gemini response
                 if (rawContent && !Array.isArray(content)) {
                     const lines = rawContent.split('\n').filter(line => line.trim());
                     const titles = [];
