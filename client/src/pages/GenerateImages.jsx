@@ -56,27 +56,27 @@ const GenerateImages = () => {
 
 
   return (
-    <div className='h-full overflow-y-scroll p-6 flex items-start flex-wrap gap-4 text-slate-700'>
+    <div className='h-full overflow-y-scroll p-3 sm:p-4 md:p-6 flex flex-col lg:flex-row items-start gap-4 text-slate-700'>
 
       {/* left col */}
-      <form onSubmit={onSubmitHandler} action="" className="w-full max-w-lg p-4 bg-white rounded-lg border border-gray-200">
+      <form onSubmit={onSubmitHandler} action="" className="w-full lg:max-w-lg p-4 bg-white rounded-lg border border-gray-200">
 
         <div className="flex items-center gap-3">
-          <Sparkle className="w-6 text-[#00AD25]" />
-          <h1 className='text-xl font-semibold'> AI Image Generator</h1>
+          <Sparkle className="w-5 sm:w-6 text-[#00AD25]" />
+          <h1 className='text-lg sm:text-xl font-semibold'> AI Image Generator</h1>
         </div>
         <p className='mt-6 text-sm font-medium'>
           Describe Your Image
         </p>
 
-        <textarea onChange={(e)=>setInput(e.target.value)} value={input} rows={4} className='w-full p-2 px-3 mt-2 outline-none text-sm rounded-md border border-gray-300' placeholder='Describe your image here...' required/>
+        <textarea onChange={(e)=>setInput(e.target.value)} value={input} rows={4} className='w-full p-2 px-3 mt-2 outline-none text-sm rounded-md border border-gray-300 focus:border-green-400 focus:ring-1 focus:ring-green-400' placeholder='Describe your image here...' required/>
 
         <p className='mt-4 text-sm font-medium'>Styles</p>
 
-        <div className='mt-3 flex gap-3 flex-wrap sm:max-w-9/11'>
+        <div className='mt-3 flex gap-2 sm:gap-3 flex-wrap'>
           {
             ImageStyle.map((item)=> (
-              <span onClick={()=>setSelectedStyle(item)} className={`text-xs px-4 py-1 border rounded-full cursor-pointer ${selectedStyle === item ? 'bg-green-50 text-green-700' : 'text-gray-500 border-gray-300'}`} key={item}>{item}</span>
+              <span onClick={()=>setSelectedStyle(item)} className={`text-xs px-3 sm:px-4 py-1 sm:py-2 border rounded-full cursor-pointer transition-all duration-200 ${selectedStyle === item ? 'bg-green-50 text-green-700 border-green-300' : 'text-gray-500 border-gray-300 hover:border-green-200'}`} key={item}>{item}</span>
             ))
           }
         </div>
@@ -110,10 +110,10 @@ const GenerateImages = () => {
 
 
       {/* right col */}
-      <div className='w-full max-w-lg p-4 bg-white rounded-lg border border-gray-200 min-h-96'>
+      <div className='w-full lg:max-w-2xl lg:flex-1 p-4 bg-white rounded-lg border border-gray-200 min-h-96'>
             <div className='flex items-center gap-3'>
               <Image className='w-5 h-5 text-[#00AD25]' />
-              <h1 className='text-xl font-semibold'>Generated Image</h1>
+              <h1 className='text-lg sm:text-xl font-semibold'>Generated Image</h1>
             </div>
 
             {

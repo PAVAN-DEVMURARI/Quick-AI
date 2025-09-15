@@ -91,35 +91,35 @@ const Dashboard = () => {
   },[isLoaded, user])
 
   return (
-    <div className='h-full overflow-y-scroll p-6'>
-      <div className='flex justify-start gap-4 flex-wrap'>
+    <div className='h-full overflow-y-scroll p-3 sm:p-4 md:p-6'>
+      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6'>
 
          
         {/* Total Creation Card */}
-          <div className='flex justify-between items-center w-72 p-4 px-6 bg-white rounded-xl border border-gray-200'>
+          <div className='flex justify-between items-center w-full p-4 px-4 sm:px-6 bg-white rounded-xl border border-gray-200 min-w-0'>
 
-            <div className='text-slate-600'>
-              <p className='text-sm'>Total Creations</p>
-              <h2 className='text-xl font-semibold'>{creation.length}</h2>
+            <div className='text-slate-600 min-w-0 flex-1'>
+              <p className='text-xs sm:text-sm'>Total Creations</p>
+              <h2 className='text-lg sm:text-xl font-semibold'>{creation.length}</h2>
             </div>
-            <div className='w-10 h-10 rounded-lg bg-gradient-to-br from-[#3588F2] to-[#0BB0D7] text-white flex justify-center items-center'>
-              <Sparkles className='w-5 text-white'/>
+            <div className='w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-[#3588F2] to-[#0BB0D7] text-white flex justify-center items-center flex-shrink-0'>
+              <Sparkles className='w-4 sm:w-5 text-white'/>
             </div> 
           </div>
 
 
 
           {/* Active Plan Card */}
-          <div className='flex justify-between items-center w-72 p-4 px-6 bg-white rounded-xl border border-gray-200'>
+          <div className='flex justify-between items-center w-full p-4 px-4 sm:px-6 bg-white rounded-xl border border-gray-200 min-w-0'>
 
-            <div className='text-slate-600'>
-              <p className='text-sm'>Active Plan</p>
-              <h2 className='text-xl font-semibold'>
+            <div className='text-slate-600 min-w-0 flex-1'>
+              <p className='text-xs sm:text-sm'>Active Plan</p>
+              <h2 className='text-lg sm:text-xl font-semibold'>
                 <Protect plan='premium' fallback="Free ">Premium-</Protect> 
               </h2>
             </div>
-            <div className='w-10 h-10 rounded-lg bg-gradient-to-br from-[#FF61C5] to-[#9E53EE] text-white flex justify-center items-center'>
-              <Gem className='w-5 text-white'/>
+            <div className='w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-[#FF61C5] to-[#9E53EE] text-white flex justify-center items-center flex-shrink-0'>
+              <Gem className='w-4 sm:w-5 text-white'/>
             </div> 
           </div>
 

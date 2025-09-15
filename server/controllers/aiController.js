@@ -5,35 +5,106 @@ import { v2 as cloudinary } from 'cloudinary';
 import pdf from 'pdf-parse/lib/pdf-parse.js';
 import FormData from 'form-data';
 
-// Alternative direct Gemini API function
-async function callGeminiDirect(prompt) {
-    try {
-        const response = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-            {
-                contents: [{
-                    parts: [{
-                        text: prompt
-                    }]
-                }],
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 100
+// Sleep function for retry delays
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Alternative direct Gemini API function with retry logic
+async function callGeminiDirect(prompt, maxRetries = 5) {
+    let lastError;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            // console.log(`Making request to Gemini API (attempt ${attempt}/${maxRetries})...`);
+            // console.log('API Key available:', process.env.GEMINI_API_KEY ? 'Yes' : 'No');
+            
+            const response = await axios.post(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+                {
+                    contents: [{
+                        parts: [{
+                            text: prompt
+                        }]
+                    }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 4096 // Increased token limit
+                    }
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 45000 // Increased timeout to 45 seconds
                 }
-            },
-            {
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+            );
+            
+            // console.log('Gemini API Response Status:', response.status);
+            // console.log('Gemini API Response Data:', JSON.stringify(response.data, null, 2));
+            
+            const generatedText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            // console.log('Extracted text length:', generatedText.length);
+            
+            if (!generatedText.trim()) {
+                throw new Error('Generated content is empty');
             }
-        );
-        
-        console.log('Direct Gemini Response:', JSON.stringify(response.data, null, 2));
-        return response.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    } catch (error) {
-        console.error('Direct Gemini API error:', error.response?.data || error.message);
-        throw error;
+            
+            return generatedText;
+        } catch (error) {
+            // console.error(`Direct Gemini API error (attempt ${attempt}/${maxRetries}):`);
+            // console.error('Status:', error.response?.status);
+            // console.error('Status Text:', error.response?.statusText);
+            // console.error('Response Data:', error.response?.data);
+            // console.error('Error Message:', error.message);
+            
+            lastError = error;
+            const errorMessage = error.response?.data?.error?.message || error.message;
+            
+            // Check if it's a retryable error
+            const isRetryable = (
+                errorMessage.includes('overloaded') || 
+                errorMessage.includes('rate limit') ||
+                errorMessage.includes('quota') ||
+                errorMessage.includes('RESOURCE_EXHAUSTED') ||
+                errorMessage.includes('UNAVAILABLE') ||
+                error.response?.status === 429 ||
+                error.response?.status === 503 ||
+                error.response?.status === 500 ||
+                error.code === 'ECONNRESET' ||
+                error.code === 'ETIMEDOUT'
+            );
+            
+            // If we have retries left and it's a retryable error
+            if (attempt < maxRetries && isRetryable) {
+                // Progressive delay: 1s, 2s, 4s, 8s, 16s
+                const baseDelay = 1000;
+                const delay = baseDelay * Math.pow(2, attempt - 1);
+                
+                // console.log(`Retrying in ${delay}ms due to ${errorMessage.includes('overloaded') ? 'overload' : 'retryable error'}...`);
+                await sleep(delay);
+                continue;
+            }
+            
+            // If it's the last attempt or not a retryable error, provide user-friendly message
+            let friendlyMessage = errorMessage;
+            if (errorMessage.includes('overloaded') || errorMessage.includes('RESOURCE_EXHAUSTED')) {
+                friendlyMessage = 'The AI service is currently overloaded. Please try again in a few moments.';
+            } else if (errorMessage.includes('rate limit') || error.response?.status === 429) {
+                friendlyMessage = 'Rate limit exceeded. Please wait a moment before trying again.';
+            } else if (errorMessage.includes('quota')) {
+                friendlyMessage = 'Service quota exceeded. Please try again later.';
+            } else if (error.code === 'ETIMEDOUT' || errorMessage.includes('timeout')) {
+                friendlyMessage = 'Request timed out. The service may be busy, please try again.';
+            } else if (!errorMessage.includes('API')) {
+                friendlyMessage = `AI service error: ${errorMessage}`;
+            }
+            
+            throw new Error(friendlyMessage);
+        }
     }
+    
+    // This shouldn't be reached, but just in case
+    const lastErrorMessage = lastError?.response?.data?.error?.message || lastError?.message || 'Unknown error';
+    throw new Error(`AI service failed after ${maxRetries} attempts. Please try again later. (${lastErrorMessage})`);
 }
 
 // Fallback function for when ClipDrop API fails
@@ -60,38 +131,57 @@ export const generateArticle = async (req, res) => {
     // Simplified version: generate once with only the provided prompt. No range enforcement,
     // no expansion passes, no trimming. Returns raw model output (trimmed for surrounding whitespace only).
     try {
+        // console.log('Article generation request received');
+        // console.log('Request body:', req.body);
+        
         const { userId } = req.auth();
+        // console.log('User ID:', userId);
+        
         const { prompt } = req.body;
         const plan = req.plan;
         const free_usage = req.free_usage;
 
+        // console.log('Plan:', plan);
+        // console.log('Free usage:', free_usage);
+
         if (plan !== 'premium' && free_usage >= 10) {
+            console.log('Free usage limit reached');
             return res.json({ success: false, message: 'Free usage limit reached , Upgrade to continue' });
         }
 
         if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
+            console.log('Invalid prompt:', prompt);
             return res.json({ success: false, message: 'Prompt is required' });
         }
 
+        console.log('Calling Gemini API with prompt:', prompt.trim());
         const response = await callGeminiDirect(prompt.trim());
         const content = response;
 
+        console.log('Gemini response length:', content ? content.length : 0);
+        console.log('Gemini response preview:', content ? content.substring(0, 100) + '...' : 'Empty');
+
         if (!content) {
+            console.log('Empty content returned from Gemini');
             return res.json({ success: false, message: 'Model returned empty content. Try another prompt.' });
         }
 
+        console.log('Saving to database...');
         await sql`INSERT INTO creations (user_id, prompt, type, content) VALUES (${userId}, ${prompt}, 'article', ${content})`;
 
         if (plan !== 'premium') {
+            console.log('Updating free usage count...');
             await clerkClient.users.updateUserMetadata(userId, {
                 privateMetadata: { free_usage: free_usage + 1 }
             });
         }
 
+        console.log('Article generation successful');
         return res.json({ success: true, content, meta: null });
     } catch (error) {
-        console.error(error);
-        return res.json({ success: false, message: error.message });
+        console.error('Article generation error:', error);
+        console.error('Error stack:', error.stack);
+        return res.json({ success: false, message: error.message || 'Internal server error' });
     }
 };
 
