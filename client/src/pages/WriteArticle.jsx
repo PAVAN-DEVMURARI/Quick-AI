@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import { useAuth } from "@clerk/clerk-react";
 import axios from "axios";
 import Markdown from "react-markdown";
+import usePersistentState from '../hooks/usePersistentState';
 
 axios.defaults.baseURL = import.meta.env.VITE_BASE_URL || "http://localhost:3000";
 
@@ -17,7 +18,7 @@ const WriteArticle = () => {
   const [selectedLength, setSelectedLength] = useState(articleLengths[0]);
   const [topic, setTopic] = useState("");
   const [loading, setLoading] = useState(false);
-  const [content, setContent] = useState("");
+  const [content, setContent] = usePersistentState("quickai.article", "");
   const [error, setError] = useState(null);
 
   const { getToken } = useAuth();

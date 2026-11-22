@@ -8,6 +8,14 @@ import FormData from 'form-data';
 // Sleep function for retry delays
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+function getGeminiUrl() {
+    if (!process.env.GEMINI_API_KEY) {
+        throw new Error('GEMINI_API_KEY is not configured');
+    }
+    const geminiModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+    return `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+}
+
 // Alternative direct Gemini API function with retry logic
 async function callGeminiDirect(prompt, maxRetries = 5) {
     let lastError;
@@ -18,7 +26,7 @@ async function callGeminiDirect(prompt, maxRetries = 5) {
             // console.log('API Key available:', process.env.GEMINI_API_KEY ? 'Yes' : 'No');
             
             const response = await axios.post(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+                getGeminiUrl(),
                 {
                     contents: [{
                         parts: [{
@@ -480,6 +488,10 @@ export const removeImageBackground = async (req,res) => {
             return res.json({success: false, message: 'Upgrade to continue'});
         }
 
+        if (!image) {
+            return res.status(400).json({success: false, message: 'Image is required'});
+        }
+
         //generate image
         
 
@@ -523,6 +535,13 @@ export const removeImageObject = async (req,res) => {
             return res.json({success: false, message: 'Upgrade to continue'});
         }
 
+        if (!image) {
+            return res.status(400).json({success: false, message: 'Image is required'});
+        }
+        if (!object || typeof object !== 'string' || !object.trim()) {
+            return res.status(400).json({success: false, message: 'Object name is required'});
+        }
+
         //remove the object
     const base64Image = `data:${image.mimetype};base64,${image.buffer.toString('base64')}`;
     const {public_id} =  await cloudinary.uploader.upload(base64Image)
@@ -561,6 +580,10 @@ export const resumeReview = async (req,res) => {
             return res.json({success: false, message: 'Upgrade to continue'});
         }
 
+        if (!resume) {
+            return res.status(400).json({success: false, message: 'Resume PDF is required'});
+        }
+
         //review the resume
         if (resume.size > 5 * 1024 * 1024)
         {
@@ -575,25 +598,9 @@ export const resumeReview = async (req,res) => {
             return res.json({success: false, message: 'Could not extract text from PDF. Please ensure it contains readable text.'});
         }
 
-        const prompt = `Review my resume and provide constructive feedback on its strengths, weaknesses, and areas for improvement. Here is my resume content: /n/n ${pdfText}`;
+        const prompt = `Review my resume and provide constructive feedback on its strengths, weaknesses, and areas for improvement. Here is my resume content:\n\n${pdfText}`;
 
-        // Use direct Gemini API call
-        const response = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-            {
-                contents: [{
-                    parts: [{
-                        text: prompt
-                    }]
-                }],
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 1000
-                }
-            }
-        );
-
-        const content = response.data.candidates?.[0]?.content?.parts?.[0]?.text;
+        const content = await callGeminiDirect(prompt);
 
         // Validate content before database insert
         if (!content || content.trim() === '') {

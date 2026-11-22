@@ -4,6 +4,8 @@ import { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
+import usePersistentState from '../hooks/usePersistentState';
+import { downloadImage } from '../utils/downloadImage';
 
 
 axios.defaults.baseURL = import.meta.env.VITE_BASE_URL || 'http://localhost:3000';
@@ -14,7 +16,7 @@ const RemoveBackground = () => {
 
   const [input, setInput] = useState('');
   const [loading , setLoading] = useState(false);
-  const [content , setContent] = useState('');
+  const [content, setContent] = usePersistentState('quickai.removed-background', '');
 
   const {getToken} = useAuth();
   
@@ -22,6 +24,7 @@ const RemoveBackground = () => {
         e.preventDefault();
         try{
           setLoading(true);
+          setContent('');
 
           const formData = new FormData();
           formData.append('image', input);
@@ -95,7 +98,16 @@ const RemoveBackground = () => {
                     </div>
                 </div>
                ) : (
-                    <img className='h-140 w-full' src={content} alt="processedImage" />
+                    <div className="mt-3">
+                      <img className='h-140 w-full' src={content} alt="processedImage" />
+                      <button
+                        type="button"
+                        onClick={() => downloadImage(content, 'quickai-background-removed.png')}
+                        className='mt-4 flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700'
+                      >
+                        Download Image
+                      </button>
+                    </div>
                )
             }
 

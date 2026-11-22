@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import Markdown from "react-markdown";
 import { useAuth } from "@clerk/clerk-react";
 import axios from "axios";
+import usePersistentState from '../hooks/usePersistentState';
 
 axios.defaults.baseURL =
   import.meta.env.VITE_BASE_URL || "http://localhost:3000";
@@ -24,9 +25,8 @@ const BlogTitle = () => {
   const [selectedCategory, setSelectedCategory] = useState(blogCategories[0]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [content, setContent] = useState("");
-  const [titles, setTitles] = useState([]);
-  const [selectedTitle, setSelectedTitle] = useState("");
+  const [titles, setTitles] = usePersistentState("quickai.blog-titles", []);
+  const [selectedTitle, setSelectedTitle] = usePersistentState("quickai.blog-selected-title", "");
 
   const { getToken } = useAuth();
 
@@ -34,6 +34,8 @@ const BlogTitle = () => {
     e.preventDefault();
     try {
       setLoading(true);
+      setTitles([]);
+      setSelectedTitle("");
       const prompt = `Generate the blog title for the keyword : ${input} in the category ${selectedCategory}`;
 
       const { data } = await axios.post(
@@ -46,12 +48,10 @@ const BlogTitle = () => {
       if (data.success && data.titles) {
         setTitles(data.titles);
         setSelectedTitle(data.titles[0] || '');
-        setContent(data.titles[0] || '');
       } else {
         toast.error(data.message || 'No titles returned');
         setTitles([]);
         setSelectedTitle('');
-        setContent('');
       }
     } catch (error) {
       toast.error(error.message);
@@ -141,7 +141,6 @@ const BlogTitle = () => {
                   key={index}
                   onClick={() => {
                     setSelectedTitle(title);
-                    setContent(title);
                   }}
                   className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                     selectedTitle === title

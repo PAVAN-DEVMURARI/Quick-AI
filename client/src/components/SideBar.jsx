@@ -16,46 +16,20 @@ import {
 
 const SideBar = ({ isMobileOpen, onMobileClose }) => {
   const { user } = useUser()
-  const { has } = useAuth()
+  const { has, isLoaded } = useAuth()
   const navigate = useNavigate()
-  
-  // Debug: Log user data to see what's available
-  React.useEffect(() => {
-    if (user) {
-      console.log('User data:', user);
-      console.log('Public metadata:', user.publicMetadata);
-      console.log('Private metadata:', user.privateMetadata);
-      console.log('Unsafe metadata:', user.unsafeMetadata);
-      console.log('Has premium permission:', has?.({ permission: "premium" }));
-      console.log('Has premium role:', has?.({ role: "premium" }));
-    }
-  }, [user, has]);
 
-  // Check if user has premium plan using multiple methods
-  const checkPremiumStatus = () => {
-    // Method 1: Check Clerk roles/permissions
-    if (has?.({ permission: "premium" }) || has?.({ role: "premium" })) {
-      return true;
+  let isPremium = false
+  if (isLoaded && user && typeof has === 'function') {
+    try {
+      isPremium =
+        has({ plan: 'premium' }) ||
+        has({ permission: 'premium' }) ||
+        has({ role: 'premium' })
+    } catch {
+      isPremium = false
     }
-    
-    // Method 2: Check public metadata
-    if (user?.publicMetadata?.subscription === "premium" || 
-        user?.publicMetadata?.plan === "premium" ||
-        user?.publicMetadata?.isPremium === true) {
-      return true;
-    }
-    
-    // Method 3: Check private metadata
-    if (user?.privateMetadata?.subscription === "premium" ||
-        user?.privateMetadata?.plan === "premium") {
-      return true;
-    }
-    
-    // Method 4: For testing - remove this when you have real subscription logic
-    return true; // TODO: Set to false and implement real logic
-  };
-  
-  const isPremium = checkPremiumStatus();
+  }
 
   const menuItems = [
     {
@@ -123,14 +97,22 @@ const SideBar = ({ isMobileOpen, onMobileClose }) => {
       {/* Logo/Header */}
       <div className="p-4 md:p-6 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              navigate('/');
+              onMobileClose?.();
+            }}
+            className="flex items-center gap-2 cursor-pointer"
+            aria-label="Go to home"
+          >
             <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
               Quick AI
             </h1>
-          </div>
+          </button>
           {/* Close button for mobile */}
           <button
             className="md:hidden p-1 hover:bg-gray-100 rounded-lg"

@@ -5,6 +5,7 @@ import axios from 'axios';
 import { useAuth } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
 import Markdown from 'react-markdown';
+import usePersistentState from '../hooks/usePersistentState';
 
 axios.defaults.baseURL = import.meta.env.VITE_BASE_URL || 'http://localhost:3000';
 
@@ -13,7 +14,7 @@ const ReviewResume = () => {
   const [input, setInput] = useState('');
 
   const [loading , setLoading] = useState(false);
-  const [content , setContent] = useState('');
+  const [content, setContent] = usePersistentState('quickai.resume-review', '');
 
   const {getToken} = useAuth();
   
@@ -24,6 +25,7 @@ const ReviewResume = () => {
 
           try{
             setLoading(true);
+            setContent('');
 
             const formData = new FormData();
             formData.append('resume', input);

@@ -19,12 +19,7 @@ import sql from '../configs/db.js';
 
  export const getPublishedCreations = async ( req , res ) => {
     try{
-        // First, let's see all creations to debug
-        const allCreations = await sql`SELECT id, user_id, type, publish, created_at FROM creations ORDER BY created_at DESC LIMIT 10`;
-        console.log('All recent creations:', allCreations);
-
         const creations = await sql`SELECT * FROM creations WHERE publish = true ORDER BY created_at DESC`;
-        console.log('Published creations found:', creations.length);
 
         res.json({success:true , creations})
     }
@@ -39,10 +34,8 @@ import sql from '../configs/db.js';
  //toggle like creations 
  export const toggleLikeCreation = async ( req , res ) => {
     try{
-        console.log('Toggle like request received');
         const {userId} = req.auth();
         const {id} = req.body
-        console.log('User ID:', userId, 'Creation ID:', id);
 
         const [creation] = await sql`SELECT * FROM creations WHERE id = ${id}`;
 

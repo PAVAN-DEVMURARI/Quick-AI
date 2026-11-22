@@ -4,6 +4,8 @@ import axios from 'axios'
 // import { toast } from 'react-toastify'
 import toast from 'react-hot-toast'
 import { useAuth } from '@clerk/clerk-react';
+import usePersistentState from '../hooks/usePersistentState';
+import { downloadImage } from '../utils/downloadImage';
 
 axios.defaults.baseURL = import.meta.env.VITE_BASE_URL || 'http://localhost:3000';
 
@@ -13,7 +15,7 @@ const RemoveObject = () => {
   const [object, setObject] = useState('');
   
   const [isLoading, setIsLoading] = useState(false);
-  const [content, setContent] = useState('');
+  const [content, setContent] = usePersistentState('quickai.removed-object', '');
 
   const {getToken} = useAuth();
     
@@ -34,6 +36,7 @@ const RemoveObject = () => {
     
     try {
       setIsLoading(true);
+      setContent('');
 
       if (object.split(' ').length > 1) 
       {
@@ -118,11 +121,20 @@ const RemoveObject = () => {
                     </div>
                   </div>
                 ) : (
-                  <img 
-                    src={content} 
-                    alt="Processed image" 
-                    className='mt-3 w-full h-145 object-contain rounded-lg'
-                  />
+                  <div className="mt-3">
+                    <img 
+                      src={content} 
+                      alt="Processed image" 
+                      className='w-full h-145 object-contain rounded-lg'
+                    />
+                    <button
+                      type="button"
+                      onClick={() => downloadImage(content, 'quickai-object-removed.png')}
+                      className='mt-4 flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700'
+                    >
+                      Download Image
+                    </button>
+                  </div>
                 )
             }
 

@@ -4,6 +4,9 @@ import { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '@clerk/clerk-react';
 import toast from 'react-hot-toast';
+import { Download } from 'lucide-react';
+import usePersistentState from '../hooks/usePersistentState';
+import { downloadImage } from '../utils/downloadImage';
 
 axios.defaults.baseURL = import.meta.env.VITE_BASE_URL || 'http://localhost:3000';
 
@@ -18,7 +21,16 @@ const GenerateImages = () => {
       const [input, setInput] = useState('');
       const [published, setPublished] = useState(false);
       const [loading , setLoading] = useState(false);
-      const [content , setContent] = useState('');
+      const [content, setContent] = usePersistentState('quickai.generated-image', '');
+
+      const handleDownload = async () => {
+        try {
+          await downloadImage(content, 'quickai-generated-image.png')
+          toast.success('Image downloaded successfully!')
+        } catch (error) {
+          toast.error(error.message)
+        }
+      }
 
       const {getToken} = useAuth();
 
@@ -26,6 +38,7 @@ const GenerateImages = () => {
         e.preventDefault();
         try{
           setLoading(true);
+          setContent('');
           const prompt = `Generate an image of ${input} in ${selectedStyle} style.`;
 
           const {data} = await axios.post('/api/ai/generate-image', 
@@ -127,6 +140,14 @@ const GenerateImages = () => {
                 ) : (
                     <div className="mt-3 h-full">
                       <img src={content} alt="Generated" className='mt-3 w-full h-auto rounded' />
+                      <button
+                        type="button"
+                        onClick={handleDownload}
+                        className="mt-4 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        <Download className="w-4 h-4" />
+                        Download Image
+                      </button>
                     </div>
                 )
             }

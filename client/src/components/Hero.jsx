@@ -1,9 +1,22 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useClerk, useUser } from '@clerk/clerk-react';
 import { assets } from '../assets/assets.js';
 const Hero = () => {
 
     const navigate = useNavigate();
+    const { openSignIn } = useClerk();
+    const { user } = useUser();
+
+    const handleStartCreating = () => {
+        if (user) {
+            navigate('/app');
+        } else {
+            openSignIn({
+                fallbackRedirectUrl: '/app'
+            });
+        }
+    };
 
 
   return (
@@ -22,13 +35,10 @@ const Hero = () => {
 
             <div className='flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 text-xs sm:text-sm mt-6 sm:mt-8 px-4'>
                 <button 
-                    onClick={() => navigate('/app')} 
+                    onClick={handleStartCreating}
                     className='bg-primary text-white py-3 px-6 sm:px-8 md:px-10 rounded-lg hover:scale-102 active:scale-95 transition cursor-pointer w-full sm:w-auto'
                 >
                     Start Creating Now
-                </button>
-                <button className='bg-white px-6 sm:px-8 md:px-10 py-3 rounded-lg border border-gray-300 hover:scale-102 active:scale-95 transition cursor-pointer w-full sm:w-auto'>
-                    Watch Demo
                 </button>
             </div>
         </div>
